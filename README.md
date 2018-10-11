@@ -35,3 +35,7 @@ The main functions for working with the class are `get_voters()`, `get_column()`
 `bar_labels` can be set to `True` or `False` depending on whether or not you want the bars in the bar chart to be labeled with their exact percentages. (default is `True`)
 `ft` can be set to `True` if you are plotting "Feeling Thermometer" data (default is `False`)
 `not_sure` can be set to `True` if you'd like to show the percentages of people who answered "Not Sure" for each question. (default is `True`)
+
+## Hillary_Trump.ipynb
+
+Jupyter notebook showing what this module can do -- plotting responses from Hillary and Trump voters in the 2016 Presidential Election
