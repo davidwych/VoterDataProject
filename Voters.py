@@ -68,7 +68,7 @@ class Voters:
                                                 selection="<answer id>")
         >>> specific_column = Voters().get_column(column_label="<column_label>")
 
-        To get access to the dataframe itself:
+        - To get access to the dataframe itself:
         >>> voter_instance.data
 
     :param data: largely unecessary to worry about. Loads the entire
@@ -102,7 +102,7 @@ class Voters:
         Voters() instance : (class instance)
 
         Usage::
-            To select the column for 2016 Presidential Election vote
+            - To select the column for 2016 Presidential Election vote
             >>> Voters().get_column(column_label="presvote16post_2016")
 
         """
@@ -124,7 +124,7 @@ class Voters:
         Voters() instance : (class instance)
 
         Usage::
-            To get dataframe of Hillary voters in 2016 Presidential Election
+            - To get dataframe of Hillary voters in 2016 Presidential Election
             >>> Voters().get_voters(column_label="presvote16post_2016",
                                     selection=1)
 
@@ -167,8 +167,8 @@ class Voters:
         """Plot bar chart of percentages of answers from the column on interest
         in the dataframe
 
-        Parameters
-        ----------
+        Args
+        ----
         selection : (str) (optional)
             label for the column in the dataframe
             (if not specified, the column of the dataframe
@@ -189,7 +189,7 @@ class Voters:
         Bar chart matplotlib plot
 
         Usage::
-            Plot 2016 Presidential Election responses for all voters, weighted
+            - Plot 2016 Presidential Election responses for all voters, weighted
             >>> Voters().plot_percentages(column_label="presvote16post_2016",
                                           rotate_labels=True, weighted=True)
 
@@ -212,36 +212,51 @@ class Voters:
         #Empty list to collect NaN answers, and "not sure" answers
         nans = []
         not_sure = []
-        if -1 in opts:
-            idx = np.where(np.array(opts).astype(int) == -1)
-            nans.append(opts[idx])
-            nans.append(percs[idx])
-            opts = np.delete(opts, idx)
-            percs = np.delete(percs, idx)
-        if 31 in opts:
-            idx = np.where(np.array(opts).astype(int) == 31)
-            nans.append(opts[idx])
-            nans.append(percs[idx])
-            opts = np.delete(opts, idx)
-            percs = np.delete(percs, idx)
-        if 97 in opts:
-            idx = np.where(np.array(opts).astype(int) == 97)
-            nans.append(opts[idx])
-            nans.append(percs[idx])
-            opts = np.delete(opts, idx)
-            percs = np.delete(percs, idx)
-        if 997 in opts:
-            idx = np.where(np.array(opts).astype(int) == 997)
-            nans.append(opts[idx])
-            nans.append(percs[idx])
-            opts = np.delete(opts, idx)
-            percs = np.delete(percs, idx)
-        if (show_not_sure == False) and (len(opts) < 8):
-            idx = np.where(np.array(opts).astype(int) == 8)
-            not_sure.append(opts[idx])
-            not_sure.append(percs[idx])
-            opts = np.delete(opts, idx)
-            percs = np.delete(percs, idx)
+
+        def _collect_unsure_answers(opts, show_not_sure,
+                                    nans=nans, not_sure=not_sure):
+            """Collects info on miscelaneous options we don't care about and
+            deletes them from the opts array, so they're not plotted
+
+            Parameters
+            ----------
+            opts : (numpy array)
+                Array of answer options
+            show_not_sure : (bool)
+                Show answers "not sure" on plot (if True)
+
+            Args
+            ----
+            nans : (empty list)
+                list to collect NaN answers
+            not_sure : (empty list)
+                list to collect "not sure" answer
+
+            Returns
+            -------
+            new_nans : (list)
+                updated array of NaN answers
+            new_not_sure : (list)
+                updates array of "not sure" answers
+
+            """
+            nan_opts = [-1, 31, 97, 997]
+            for opt in nan_opts:
+                if opt in opts:
+                    idx = np.where(np.array(opts).astype(int) == opt)
+                    nans.append(opts[idx])
+                    nans.append(percs[idx])
+                    opts = np.delete(opts, idx)
+                    percs = np.delete(percs, idx)
+            if (show_not_sure == False) and (len(opts) < 8):
+                idx = np.where(np.array(opts).astype(int) == 8)
+                not_sure.append(opts[idx])
+                not_sure.append(percs[idx])
+                opts = np.delete(opts, idx)
+                percs = np.delete(percs, idx)
+            return new_nans, new_not_sure
+
+        nans, not_sure = _collect_unsure_answers(opts, show_not_sure)
 
         #Initialize plot
         f, ax = plt.subplots()
@@ -252,7 +267,7 @@ class Voters:
                 plt.xticks(opts, polls[selection][3], rotation=45, ha="right")
             else:
                 plt.xticks(opts, polls[selection][3])
-        #Feelings thermometer plots
+        #Feelings Thermometer plots
         else:
             #Collecting feelings thermometer answers in to bins
             ft_bins = np.linspace(0,100,51)
