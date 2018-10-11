@@ -26,7 +26,7 @@ def convert_to_percentages(array, weighted=False, sanity_check=False):
 
     Returns
     -------
-    unique_elements : (list)
+    unique_elements : (numpy array)
         unique elements from array
     percs : (numpy array)
         percentages for each element
@@ -56,7 +56,7 @@ def convert_to_percentages(array, weighted=False, sanity_check=False):
     if sanity_check:
         sanity_checker()
 
-    return unique_elements, percs
+    return np.array(unique_elements), percs
 
 #VOTER class
 class Voters:
@@ -206,7 +206,10 @@ class Voters:
             else:
                 opts, percs = convert_to_percentages(self._extract(selection=selection, weighted=True), weighted=True)
 
-        opts = np.array(opts)
+        #Sort the answer options
+        opts = np.sort(opts)
+
+        #Empty list to collect NaN answers, and "not sure" answers
         nans = []
         not_sure = []
         if -1 in opts:
@@ -240,14 +243,18 @@ class Voters:
             opts = np.delete(opts, idx)
             percs = np.delete(percs, idx)
 
+        #Initialize plot
         f, ax = plt.subplots()
-        opts = np.sort(opts)
+
+        #Normal plots
         if not ft:
             if rotate_labels:
                 plt.xticks(opts, polls[selection][3], rotation=45, ha="right")
             else:
                 plt.xticks(opts, polls[selection][3])
+        #Feelings thermometer plots
         else:
+            #Collecting feelings thermometer answers in to bins
             ft_bins = np.linspace(0,100,51)
             new_percs = np.zeros(len(ft_bins))
             i = 0
@@ -265,24 +272,30 @@ class Voters:
             else:
                 plt.xticks([0.0, 25.0, 50.0, 75.0, 100.0], ["Very Cold", "Cold", "None", "Warm", "Very Warm"])
 
+        #Bar chart
         rects = ax.bar(opts, percs)
 
+        #Label the bars with the associated percentages
         def autolabel(rects):
             max_height = max([rect.get_height() for rect in rects])
             for rect in rects:
                 height = rect.get_height()
+                #Label below if large bar
                 if height > max_height/4.0:
                     ax.text(rect.get_x() + rect.get_width()/2., height-(max_height/15),
                             '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
+                #Label above if small bar
                 else:
                     ax.text(rect.get_x() + rect.get_width()/2., height+(max_height/15),
                             '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
 
         if bar_labels:
             autolabel(rects)
-
+        #Title with the question summary
         plt.suptitle(t=polls[selection][0], fontweight="bold")
+        #Output the plot
         plt.show()
+        #Print out the sample size and number of NaNs (if any)
         print("N = {}".format(self.data.shape[0]))
         try:
             print("NaNs (percentage): {}".format(nans[1]))
