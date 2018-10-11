@@ -12,7 +12,15 @@ The `Voters` module is a python module created to easily work with and analyze t
 
 It is a class initialized with the call `Voters()`. If initialized on its own, it loads the entire YouGov data set as a pandas data frame that can be accessed and tinkered with `Voters().data` as you would a normal `pandas` data frame. 
 
-All of the information necessary to work with the data set is in the dictionary `polls` in the file `poll.py`
+All of the information necessary to work with the data set is in the `polls` in the file `polls.py` (for anyone looking to do similar work, fair warning, the creation of this dictionary was *by far* the most labor-intensive part of this project). The `polls` dictionary has the column labels for the specific quesitons asked as keys. You can view all of the available column labels, and the associated question summaries by calling:
+
+> keys = polls.keys()
+> for key in keys:
+>   print(polls[key][0] + " -- " + key)
+
+To see the full information for each question (the summary, the specific question asked, the identifiers for the answers, and the answers they correspond to) call:
+
+> polls[<key>]
 
 The main functions for working with the class are `get_voters()`, `get_column()` and `plot_percentages()`
 
