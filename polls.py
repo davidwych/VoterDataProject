@@ -698,8 +698,8 @@ polls = {
 
     'gunown_2016' : ('Gun Ownership (2016)',
                          "Do you or does anyone in your household own a gun?",
-                         [[1],[2]],
-                         ['Yes', 'No']),
+                         [[1],[2],[3],[8]],
+                         ['Personally own a gun', 'Gun in household', 'No Guns', 'Don\'t know']),
 
     'knowgay4_basline' : ('Know an LGBT Person',
                           "Do you personally know anybody who is gay, lesbian, bisexual, or transgender?",

@@ -4,60 +4,6 @@ import matplotlib.pyplot as plt
 plt.style.use('seaborn')
 from polls import polls
 
-
-#USEFUL FUNCTIONS:
-def convert_to_percentages(array, weighted=False, sanity_check=False):
-    """Converts an array of counts to percentages of the total
-
-    Parameters
-    ----------
-    array : (list, numpy array)
-        array of counts
-        (len 1 for unweighted, len 2 for weighted)
-
-    Args
-    ----
-    weights : (bool)
-        True -- weighted (weighted by demographic factors)
-        False -- unweighted
-    sanity_check : (bool)
-        True -- perform sanity check (percentages at add to 1.0)
-        False -- trust the universe
-
-    Returns
-    -------
-    unique_elements : (numpy array)
-        unique elements from array
-    percs : (numpy array)
-        percentages for each element
-    """
-    if not weighted:
-        unique_elements = list(set(array))
-        counts = np.zeros(len(unique_elements))
-        for ans in array:
-            idx = np.where(unique_elements == ans)
-            counts[idx] += 1
-        total = np.sum(counts)
-        percs = counts/total
-    else:
-        unique_elements = list(set(array[0]))
-        counts = np.zeros(len(unique_elements))
-        for i in range(len(array[0])):
-            idx = np.where(unique_elements == array[0][i])
-            counts[idx] += array[1][i]
-        total = np.sum(counts)
-        percs = counts/total
-
-    def sanity_checker():
-        if np.sum(percs) == 1.0:
-            print("Sanity confirmed!")
-        else:
-            print("Sanity in question...")
-    if sanity_check:
-        sanity_checker()
-
-    return np.array(unique_elements), percs
-
 #VOTER class
 class Voters:
     """Class for working with YouGov VOTER Study Group data
@@ -75,11 +21,14 @@ class Voters:
     YouGov dataset if initialized on its own, and copies the DataFrame
     from other instances if manipulating with the function below
     """
-    def __init__(self, data='./VOTER_Survey_December16_Release1.csv'):
+    def __init__(self, data='./VOTER_Survey_December16_Release1.csv',
+                       voter_label="All Voters"):
         if isinstance(data, str):
             self.data = pd.read_csv(data)
+            self.voter_label = voter_label
         else:
             self.data = data
+            self.voter_label = voter_label
 
     def __add__(self, other):
         """Concatenate the dataframes of two Voters instances"""
@@ -131,7 +80,11 @@ class Voters:
         """
         voters = self.data[:][self.data[column_label] == selection].fillna(value=-1.0)
         voters = voters.drop(column_label, axis=1)
-        return Voters(data=voters)
+
+        answer_idx = np.where(np.array(polls[column_label][2]) == selection)
+        _voter_label = polls[column_label][3][int(answer_idx[0])]
+
+        return Voters(data=voters, voter_label=_voter_label)
 
     def _extract(self, selection="", weighted=False):
         """Extracts a numpy array for input to plot_percentages()
@@ -161,6 +114,114 @@ class Voters:
                 return np.array(self.data[selection])
             else:
                 return np.array([self.data[selection], Voters().data.iloc[self.data.index]["weight"]])
+
+    def _convert_to_percentages(self, array, sanity_check=False):
+        """Converts an array of counts to percentages of the total
+
+        Parameters
+        ----------
+        array : (list, numpy array)
+            array of counts
+            (len 1 for unweighted, len 2 for weighted)
+
+        Args
+        ----
+        weights : (bool)
+            True -- weighted (weighted by demographic factors)
+            False -- unweighted
+        sanity_check : (bool)
+            True -- perform sanity check (percentages at add to 1.0)
+            False -- trust the universe
+
+        Returns
+        -------
+        unique_elements : (numpy array)
+            unique elements from array
+        percs : (numpy array)
+            percentages for each element
+        """
+        if len(array) == 1:
+            unique_elements = list(set(array))
+            counts = np.zeros(len(unique_elements))
+            for ans in array:
+                idx = np.where(unique_elements == ans)
+                counts[idx] += 1
+            total = np.sum(counts)
+            percs = counts/total
+        else:
+            unique_elements = list(set(array[0]))
+            counts = np.zeros(len(unique_elements))
+            for i in range(len(array[0])):
+                idx = np.where(unique_elements == array[0][i])
+                counts[idx] += array[1][i]
+            total = np.sum(counts)
+            percs = counts/total
+
+        def sanity_checker():
+            if np.sum(percs) == 1.0:
+                print("Sanity confirmed!")
+            else:
+                print("Sanity in question...")
+        if sanity_check:
+            sanity_checker()
+
+        return np.array(unique_elements), percs
+
+    def _collect_unsure(self, opts, percs, show_not_sure):
+        """Collects info on miscelaneous options we don't care about and
+        deletes them from the opts array, so they're not plotted
+
+        Parameters
+        ----------
+        opts : (numpy array)
+            Array of response option identifiers
+        percs : (numpy array)
+            Array of percentages for each response
+        show_not_sure : (bool)
+            Show answers "not sure" on plot (if True)
+
+        Returns
+        -------
+        opts : (numpy array)
+            updated answer identifier array
+        percs : (numpy array)
+            updated percentages array
+        nans : (list)
+            updated array of NaN answers
+        not_sure : (list)
+            updates array of "not sure" answers
+
+        """
+        nans = []
+        not_sure = []
+        nan_opts = [-1, 31, 97, 997]
+        for opt in nan_opts:
+            if opt in opts:
+                idx = np.where(np.array(opts).astype(int) == opt)
+                nans.append(opts[idx])
+                nans.append(percs[idx])
+                opts = np.delete(opts, idx)
+                percs = np.delete(percs, idx)
+        if (show_not_sure == False) and (len(opts) < 8):
+            idx = np.where(np.array(opts).astype(int) == 8)
+            not_sure.append(opts[idx])
+            not_sure.append(percs[idx])
+            opts = np.delete(opts, idx)
+            percs = np.delete(percs, idx)
+        return opts, percs, nans, not_sure
+
+    def _autolabel(self, rects, ax):
+        max_height = max([rect.get_height() for rect in rects])
+        for rect in rects:
+            height = rect.get_height()
+            #Label below if large bar
+            if height > max_height/4.0:
+                ax.text(rect.get_x() + rect.get_width()/2., height-(max_height/15),
+                        '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
+            #Label above if small bar
+            else:
+                ax.text(rect.get_x() + rect.get_width()/2., height+(max_height/15),
+                        '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
 
     def plot_percentages(self, selection="", rotate_labels=True, weighted=True,
                          bar_labels=True, ft=False, show_not_sure=False):
@@ -194,69 +255,23 @@ class Voters:
                                           rotate_labels=True, weighted=True)
 
         """
+        #For single-column dataframe, no selection necessary
         if selection == "":
             if not weighted:
-                opts, percs = convert_to_percentages(self._extract())
+                opts, percs = self._convert_to_percentages(self._extract())
             else:
-                opts, percs = convert_to_percentages(self._extract(weighted=True), weighted=True)
+                opts, percs = self._convert_to_percentages(self._extract(weighted=True))
             selection = self.data.columns[0]
         else:
             if not weighted:
-                opts, percs = convert_to_percentages(self._extract(selection=selection))
+                opts, percs = self._convert_to_percentages(self._extract(selection=selection))
             else:
-                opts, percs = convert_to_percentages(self._extract(selection=selection, weighted=True), weighted=True)
+                opts, percs = self._convert_to_percentages(self._extract(selection=selection, weighted=True))
+
+        opts, percs, nans, not_sure = self._collect_unsure(opts, percs, show_not_sure)
 
         #Sort the answer options
         opts = np.sort(opts)
-
-        #Empty list to collect NaN answers, and "not sure" answers
-        nans = []
-        not_sure = []
-
-        def _collect_unsure_answers(opts, show_not_sure,
-                                    nans=nans, not_sure=not_sure):
-            """Collects info on miscelaneous options we don't care about and
-            deletes them from the opts array, so they're not plotted
-
-            Parameters
-            ----------
-            opts : (numpy array)
-                Array of answer options
-            show_not_sure : (bool)
-                Show answers "not sure" on plot (if True)
-
-            Args
-            ----
-            nans : (empty list)
-                list to collect NaN answers
-            not_sure : (empty list)
-                list to collect "not sure" answer
-
-            Returns
-            -------
-            new_nans : (list)
-                updated array of NaN answers
-            new_not_sure : (list)
-                updates array of "not sure" answers
-
-            """
-            nan_opts = [-1, 31, 97, 997]
-            for opt in nan_opts:
-                if opt in opts:
-                    idx = np.where(np.array(opts).astype(int) == opt)
-                    nans.append(opts[idx])
-                    nans.append(percs[idx])
-                    opts = np.delete(opts, idx)
-                    percs = np.delete(percs, idx)
-            if (show_not_sure == False) and (len(opts) < 8):
-                idx = np.where(np.array(opts).astype(int) == 8)
-                not_sure.append(opts[idx])
-                not_sure.append(percs[idx])
-                opts = np.delete(opts, idx)
-                percs = np.delete(percs, idx)
-            return new_nans, new_not_sure
-
-        nans, not_sure = _collect_unsure_answers(opts, show_not_sure)
 
         #Initialize plot
         f, ax = plt.subplots()
@@ -267,45 +282,35 @@ class Voters:
                 plt.xticks(opts, polls[selection][3], rotation=45, ha="right")
             else:
                 plt.xticks(opts, polls[selection][3])
+            #Bar chart
+            rects = ax.bar(opts, percs)
+
         #Feelings Thermometer plots
         else:
             #Collecting feelings thermometer answers in to bins
-            ft_bins = np.linspace(0,100,51)
+            ft_bins = np.linspace(0,100,11)
             new_percs = np.zeros(len(ft_bins))
             i = 0
-            for j in range(len(opts) - 1):
+            for j in range(len(opts)):
                 if opts[j] < ft_bins[i+1]:
                     new_percs[i] += percs[j]
                 else:
-                    new_percs[i] += percs[j]
+                    new_percs[i+1] += percs[j]
                     i += 1
-            opts = ft_bins + (100/(51*2))
+            opts = ft_bins
+            bar_width = 0.8*(100/11)
             percs = new_percs
+
+            #Bar chart
+            rects = ax.bar(opts, percs, bar_width)
 
             if rotate_labels:
                 plt.xticks([0.0, 25.0, 50.0, 75.0, 100.0], ["Very Cold", "Cold", "None", "Warm", "Very Warm"], rotation=45, ha="right")
             else:
                 plt.xticks([0.0, 25.0, 50.0, 75.0, 100.0], ["Very Cold", "Cold", "None", "Warm", "Very Warm"])
 
-        #Bar chart
-        rects = ax.bar(opts, percs)
-
-        #Label the bars with the associated percentages
-        def autolabel(rects):
-            max_height = max([rect.get_height() for rect in rects])
-            for rect in rects:
-                height = rect.get_height()
-                #Label below if large bar
-                if height > max_height/4.0:
-                    ax.text(rect.get_x() + rect.get_width()/2., height-(max_height/15),
-                            '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
-                #Label above if small bar
-                else:
-                    ax.text(rect.get_x() + rect.get_width()/2., height+(max_height/15),
-                            '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
-
         if bar_labels:
-            autolabel(rects)
+            self._autolabel(rects, ax)
         #Title with the question summary
         plt.suptitle(t=polls[selection][0], fontweight="bold")
         #Output the plot
@@ -313,6 +318,141 @@ class Voters:
         #Print out the sample size and number of NaNs (if any)
         print("N = {}".format(self.data.shape[0]))
         try:
-            print("NaNs (percentage): {}".format(nans[1]))
+            print("NaNs (percentage): {:.1%}".format(nans[1][0]))
         except IndexError:
             pass
+        def save(title="voter_data_plot.png"):
+            plt.savefig(title, format="png")
+
+    def plot_comparison(self, other, selection="", rotate_labels=True,
+                        weighted=True, bar_labels=True, ft=False,
+                        show_not_sure=False):
+        """Plot bar chart of percentages of answers from the column on interest
+        in the dataframe
+
+        Args
+        ----
+        other : (class/Voters() instance)
+            Voters() instance for another dataframe
+        selection : (str) (optional)
+            label for the column in the dataframe
+            (if not specified, the column of the dataframe
+            will be automatically plotted)
+        rotate_labels : (bool) (optional)
+            rotate the labels of the bars (if True)
+        weighted : (bool) (optional)
+            weight the data w.r.t demographics (if True)
+        bar_labels : (bool) (optional)
+            label the bars with their associated percentages
+        ft : (bool) (optional)
+            set to True if plotting a "Feelings Thermometer" question
+        show_not_sure : (bool) (optional)
+            show the percentages of voters who answered "not sure" (if True)
+
+        Returns
+        -------
+        Bar chart matplotlib plot
+
+        Usage::
+            - Plot 2016 Presidential Election responses for all voters, weighted
+            >>> Voters().plot_percentages(column_label="presvote16post_2016",
+                                          rotate_labels=True, weighted=True)
+
+        """
+        #For single-column dataframe, no selection necessary
+        if selection == "":
+            if not weighted:
+                opts_1, percs_1 = self._convert_to_percentages(self._extract())
+                opts_2, percs_2 = self._convert_to_percentages(other._extract())
+            else:
+                opts_1, percs_1 = self._convert_to_percentages(self._extract(weighted=True))
+                opts_2, percs_2 = self._convert_to_percentages(other._extract(weighted=True))
+            if self.data.columns[0] == other.data.columns[0]:
+                selection = self.data.columns[0]
+            else:
+                raise TypeError("Voters() instances must have the same column to compare")
+        else:
+            if not weighted:
+                opts_1, percs_1 = self._convert_to_percentages(self._extract(selection=selection))
+                opts_2, percs_2 = self._convert_to_percentages(other._extract(selection=selection))
+            else:
+                opts_1, percs_1 = self._convert_to_percentages(self._extract(selection=selection, weighted=True))
+                opts_2, percs_2 = self._convert_to_percentages(other._extract(selection=selection, weighted=True))
+
+        opts_1, percs_1, nans_1, not_sure_1 = self._collect_unsure(opts_1, percs_1, show_not_sure)
+        opts_2, percs_2, nans_2, not_sure_2 = self._collect_unsure(opts_2, percs_2, show_not_sure)
+
+        #Sort the answer options
+        opts_1 = np.sort(opts_1)
+        opts_2 = np.sort(opts_2)
+
+        #Initialize plot
+        f, ax = plt.subplots()
+
+        #Normal plots
+        if not ft:
+            bar_width = 0.4
+            opts_2 = opts_1 + bar_width
+            if rotate_labels:
+                plt.xticks(opts_1 + 0.5*bar_width , polls[selection][3], rotation=45, ha="right")
+            else:
+                plt.xticks(opts_1 + 0.5*bar_width, polls[selection][3])
+
+            #Bar chart
+            rects_1 = ax.bar(opts_1, percs_1, bar_width, color="Blue")
+            rects_2 = ax.bar(opts_2, percs_2, bar_width, color="Red")
+        #Feelings Thermometer plots
+        else:
+            #Collecting feelings thermometer answers in to bins
+            def _collect(_opts, _percs, num_bins=11, side="left"):
+                """Collecting FT percentage bars in to bins"""
+                ft_bins = np.linspace(0,100,num_bins)
+                new_percs = np.zeros(len(ft_bins))
+                bar_width = 0.45*(100/num_bins)
+                i = 0
+                for j in range(len(_opts)):
+                    if _opts[j] < ft_bins[i+1]:
+                        new_percs[i] += _percs[j]
+                    else:
+                        new_percs[i+1] += _percs[j]
+                        i += 1
+                if side == "left":
+                    opts = ft_bins
+                else:
+                    opts = ft_bins + bar_width
+                percs = new_percs
+                return opts, percs, bar_width
+
+            opts_1, percs_1, bar_width_1 = _collect(opts_1, percs_1, side="left")
+            opts_2, percs_2, bar_width_2 = _collect(opts_2, percs_2, side="right")
+
+            #Bar chart
+            rects_1 = ax.bar(opts_1, percs_1, bar_width_1, color="Blue")
+            rects_2 = ax.bar(opts_2, percs_2, bar_width_2, color="Red")
+
+            ft_ticks = np.array([0.0, 25.0, 50.0, 75.0, 100.0]) + (bar_width_1/2)
+            if rotate_labels:
+                plt.xticks(ft_ticks, ["Very Cold", "Cold", "None", "Warm", "Very Warm"], rotation=45, ha="right")
+            else:
+                plt.xticks(ft_ticks, ["Very Cold", "Cold", "None", "Warm", "Very Warm"])
+
+        if bar_labels:
+            self._autolabel(rects_1, ax)
+            self._autolabel(rects_2, ax)
+
+        #Title with the question summary
+        plt.suptitle(t=polls[selection][0], fontweight="bold")
+        #Legend
+        ax.legend((rects_1[0], rects_2[0]), (self.voter_label, other.voter_label))
+        #Output the plot
+        plt.show()
+        #Print out the sample size and number of NaNs (if any)
+        print("N_{} = {}".format(self.voter_label, self.data.shape[0]))
+        print("N_{} = {}".format(other.voter_label, other.data.shape[0]))
+        try:
+            print("NaNs_{} (percentage): {:.1%}".format(self.voter_label, nans_1[1][0]))
+            print("NaNs_{} (percentage): {:.1%}".format(other.voter_label, nans_2[1][0]))
+        except IndexError:
+            pass
+        def save(title="voter_data_plot.png"):
+            plt.savefig(title, format="png")
