@@ -210,18 +210,22 @@ class Voters:
             percs = np.delete(percs, idx)
         return opts, percs, nans, not_sure
 
-    def _autolabel(self, rects, ax):
-        max_height = max([rect.get_height() for rect in rects])
+    def _autolabel(self, rects, ax, max_p=""):
+        if max_p == "":
+            max_p = max([rect.get_height() for rect in rects])
+        else:
+            max_p = max_p
         for rect in rects:
             height = rect.get_height()
             #Label below if large bar
-            if height > max_height/4.0:
-                ax.text(rect.get_x() + rect.get_width()/2., height-(max_height/15),
+            if height > max_p/4.0:
+                ax.text(rect.get_x() + rect.get_width()/2., height-(max_p/15),
                         '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
             #Label above if small bar
             else:
-                ax.text(rect.get_x() + rect.get_width()/2., height+(max_height/15),
+                ax.text(rect.get_x() + rect.get_width()/2., height+(max_p/15),
                         '{:.1%}'.format(height), ha='center', va='bottom', fontweight='bold')
+
 
     def plot_percentages(self, selection="", rotate_labels=True, weighted=True,
                          bar_labels=True, ft=False, show_not_sure=False):
@@ -305,9 +309,12 @@ class Voters:
             rects = ax.bar(opts, percs, bar_width)
 
             if rotate_labels:
-                plt.xticks([0.0, 25.0, 50.0, 75.0, 100.0], ["Very Cold", "Cold", "None", "Warm", "Very Warm"], rotation=45, ha="right")
+                plt.xticks([0.0, 25.0, 50.0, 75.0, 100.0],
+                           ["Very Cold", "Cold", "None", "Warm", "Very Warm"],
+                           rotation=45, ha="right")
             else:
-                plt.xticks([0.0, 25.0, 50.0, 75.0, 100.0], ["Very Cold", "Cold", "None", "Warm", "Very Warm"])
+                plt.xticks([0.0, 25.0, 50.0, 75.0, 100.0],
+                           ["Very Cold", "Cold", "None", "Warm", "Very Warm"])
 
         if bar_labels:
             self._autolabel(rects, ax)
@@ -382,6 +389,8 @@ class Voters:
         opts_1, percs_1, nans_1, not_sure_1 = self._collect_unsure(opts_1, percs_1, show_not_sure)
         opts_2, percs_2, nans_2, not_sure_2 = self._collect_unsure(opts_2, percs_2, show_not_sure)
 
+        max_p = max(max(percs_1), max(percs_2))
+
         #Sort the answer options
         opts_1 = np.sort(opts_1)
         opts_2 = np.sort(opts_2)
@@ -432,13 +441,14 @@ class Voters:
 
             ft_ticks = np.array([0.0, 25.0, 50.0, 75.0, 100.0]) + (bar_width_1/2)
             if rotate_labels:
-                plt.xticks(ft_ticks, ["Very Cold", "Cold", "None", "Warm", "Very Warm"], rotation=45, ha="right")
+                plt.xticks(ft_ticks, ["Very Cold", "Cold", "None", "Warm", "Very Warm"],
+                           rotation=45, ha="right")
             else:
                 plt.xticks(ft_ticks, ["Very Cold", "Cold", "None", "Warm", "Very Warm"])
 
         if bar_labels:
-            self._autolabel(rects_1, ax)
-            self._autolabel(rects_2, ax)
+            self._autolabel(rects_1, ax, max_p = max_p)
+            self._autolabel(rects_2, ax, max_p = max_p)
 
         #Title with the question summary
         plt.suptitle(t=polls[selection][0], fontweight="bold")

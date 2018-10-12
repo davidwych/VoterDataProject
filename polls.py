@@ -580,7 +580,7 @@ polls = {
                              ['Strongly Agree', 'Agree', 'Don\'t know','Disagree', 'Strongly Disagree']),
 
 
-    'ownorrent_b' : ('Own or Rent',
+    'ownorrent_baseline' : ('Own or Rent',
                      "Is the place you live owned or rented?",
                      [[1],[2],[3]],
                      ['Owned', 'Rented', 'Other']),
