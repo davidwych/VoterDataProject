@@ -22,7 +22,7 @@ To see the full information for each question (the summary, the specific questio
 ```
 polls[<key>]
 ```
-The main functions for working with the class are `get_voters()`, `get_column()` and `plot_percentages()`
+The main functions for working with the class are `get_voters()`, `get_column()`, `plot_percentages()` and `plot_comparison`.
 
 `get_column()` accesses a particular column in the data frame, and resets the object's data frame to consist of only that column. The columns are indexed by the dataset's column labels. The sole argument for this function is `column_label="<column_label>"`.
 
@@ -35,6 +35,8 @@ The main functions for working with the class are `get_voters()`, `get_column()`
 `bar_labels` can be set to `True` or `False` depending on whether or not you want the bars in the bar chart to be labeled with their exact percentages. (default is `True`)
 `ft` can be set to `True` if you are plotting "Feeling Thermometer" data (default is `False`)
 `not_sure` can be set to `True` if you'd like to show the percentages of people who answered "Not Sure" for each question. (default is `True`)
+
+`plot_comparison()` acts on one Voters() instance, and takes another Voters() instance as its first argument. It then plots a comparison of the two voter's thoughts on the `selection` question. It takes the same arguments as `plot_percentages()` above.
 
 ## Hillary_Trump.ipynb
 
