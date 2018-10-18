@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-plt.style.use('seaborn')
+plt.style.use('seaborn-muted')
 from polls import polls
 
 #VOTER class
@@ -275,7 +275,9 @@ class Voters:
         opts, percs, nans, not_sure = self._collect_unsure(opts, percs, show_not_sure)
 
         #Sort the answer options
-        opts = np.sort(opts)
+        order = np.argsort(opts)
+        opts = opts[order]
+        percs = percs[order]
 
         #Initialize plot
         f, ax = plt.subplots()
@@ -366,6 +368,63 @@ class Voters:
                                           rotate_labels=True, weighted=True)
 
         """
+        ### WORKING ON THIS ###
+        # opts = np.array([None]*(len(other)+1))
+        # percs = np.array([None]*(len(other)+1))
+        # opts[0], percs[0] = self._convert_to_percentages(self._extract())
+        # if not weighted:
+        #     for i in range(len(other)):
+        #         opts[i+1], percs[i+1] = self._convert_to_percentages(other[i]._extract())
+        # else:
+        #     for i in range(len(other)):
+        #         opts[i+1], percs[i+1] = self._convert_to_percentages(other[i]._extract(weighted=True))
+        # nans = np.array([None]*(len(other)+1))
+        # not_sure = np.array([None]*(len(other)+1))
+        # for i in range(len(other) + 1):
+        #     opts[i], percs[i], nans[i], not_sure[i] = self._collect_unsure(opts[i], percs[i], show_not_sure)
+        #
+        # max_p = max(percs)
+        # order = np.array([None]*len(other)+1)
+        # for i in range(len(other)+1):
+        #     order[i] = np.argsort(opts[i])
+        #     opts[i] = opts[i][order[i]]
+        #     percs[i] = percs[order[i]]
+        #
+        # f, ax = plt.subplots()
+        # if not ft:
+        #     bar_width = 1/(len(order)+1)
+        #     offsets = np.arange(1,len(opts))-(opts/2)
+        #     for i in range(len(opts)):
+        #         opts[i] = opts[i] + bar_width*offsets[i]
+        #     if rotate_labels:
+        #         plt.xticks(np.arange(1,(len(opts[i])+1)), polls[selection][3],
+        #                    rotation=45, ha="right")
+        #     else:
+        #         plt.xticks(opts[i] + 0.5*bar_width, polls[selection][3])
+        #
+        #     rects = [None]*len(opts)
+        #     for i in range(len(opts)):
+        #         rects[i] = ax.bar(opts[i], percs[i], bar_width)
+        # else:
+        #     print("not working yet")
+        #
+        # #Title with the question summary
+        # plt.suptitle(t=polls[selection][0], fontweight="bold")
+        # #Legend
+        # ax.legend((rects_1[0], rects_2[0]), (self.voter_label, other.voter_label))
+        # #Output the plot
+        # plt.show()
+        # #Print out the sample size and number of NaNs (if any)
+        # print("N_{} = {}".format(self.voter_label, self.data.shape[0]))
+        # print("N_{} = {}".format(other.voter_label, other.data.shape[0]))
+        # try:
+        #     print("NaNs_{} (percentage): {:.1%}".format(self.voter_label, nans_1[1][0]))
+        #     print("NaNs_{} (percentage): {:.1%}".format(other.voter_label, nans_2[1][0]))
+        # except IndexError:
+        #     pass
+        # def save(title="voter_data_plot.png"):
+        #     plt.savefig(title, format="png")
+
         #For single-column dataframe, no selection necessary
         if selection == "":
             if not weighted:
@@ -403,13 +462,14 @@ class Voters:
             bar_width = 0.4
             opts_2 = opts_1 + bar_width
             if rotate_labels:
-                plt.xticks(opts_1 + 0.5*bar_width , polls[selection][3], rotation=45, ha="right")
+                plt.xticks(opts_1 + 0.5*bar_width , polls[selection][3],
+                           rotation=45, ha="right")
             else:
                 plt.xticks(opts_1 + 0.5*bar_width, polls[selection][3])
 
             #Bar chart
-            rects_1 = ax.bar(opts_1, percs_1, bar_width, color="Blue")
-            rects_2 = ax.bar(opts_2, percs_2, bar_width, color="Red")
+            rects_1 = ax.bar(opts_1, percs_1, bar_width)
+            rects_2 = ax.bar(opts_2, percs_2, bar_width)
         #Feelings Thermometer plots
         else:
             #Collecting feelings thermometer answers in to bins
